@@ -18,12 +18,12 @@ const SearchBar = () => {
     };
 
   return (
-   <form className="flex items-center justify-between gap-4 bg-gray-100 p-2 rounded-md flex-1" onSubmit={handleSearch}>
+  <form className="flex min-w-0 max-w-sm flex-1 items-center justify-between gap-3 rounded-md bg-gray-100 p-2" onSubmit={handleSearch}>
     <input type="text"
      name="name" 
       placeholder="Search"
-      className="flex-1 bg-transparent outline-none"/>
-    <button className="cursor-pointer">
+      className="min-w-0 flex-1 bg-transparent outline-none"/>
+    <button type="submit" aria-label="Search products" className="shrink-0 cursor-pointer">
       <Image src='/search.png' alt="search"
         width={16}
         height={16}

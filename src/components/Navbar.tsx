@@ -7,8 +7,8 @@ import NavIcons from './NavIcons'
 
 const Navbar = () => {
   return (
-    <div className="relative h-20 border-b border-stone-200 bg-white px-4 md:px-8 lg:px-16 xl:px-32 2xl:px-64">
-      <div className="flex h-full items-center justify-between md:hidden">
+    <div className="relative z-20 h-20 border-b border-stone-200 bg-white px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-20">
+      <div className="flex h-full items-center justify-between lg:hidden">
         <Link href="/" className="flex items-center gap-3">
           <Image src="/logo.png" alt="logo" width={27} height={27} />
           <div className="text-2xl tracking-[0.2em]">LuxeLine</div>
@@ -16,23 +16,23 @@ const Navbar = () => {
         <Menu />
       </div>
 
-      <div className="hidden h-full items-center justify-between gap-8 md:flex">
-        <div className="flex w-1/3 items-center gap-12 xl:w-1/2">
-          <Link href="/" className="flex items-center gap-3">
+      <div className="hidden h-full items-center justify-between gap-5 lg:flex">
+        <div className="flex min-w-0 shrink-0 items-center gap-5">
+          <Link href="/" className="flex shrink-0 items-center gap-3">
             <Image src="/logo.png" alt="logo" width={24} height={24} />
             <div className="text-2xl tracking-[0.2em]">LuxeLine</div>
           </Link>
 
-          <div className="hidden gap-5 text-sm text-stone-600 xl:flex">
+          <div className="flex items-center gap-3 whitespace-nowrap text-xs text-stone-600 xl:gap-4 xl:text-sm">
             <Link href="/">Home</Link>
             <Link href="/list">Shop</Link>
-            <Link href="/list">Collections</Link>
-            <Link href="/list">Journal</Link>
-            <Link href="/list">Contact</Link>
+            <Link href="/collections">Collections</Link>
+            <Link href="/journal">Journal</Link>
+            <Link href="/contact">Contact</Link>
           </div>
         </div>
 
-        <div className="flex w-2/3 items-center justify-center gap-8 xl:w-1/2">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-4 xl:gap-6">
           <SearchBar />
           <NavIcons />
         </div>

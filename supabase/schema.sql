@@ -13,24 +13,37 @@ create table if not exists public.products (
   created_at timestamptz not null default now()
 );
 
+alter table public.products
+  add column if not exists owner_id uuid references auth.users(id) on delete cascade;
+
 alter table public.products enable row level security;
 
 create policy "Anyone can view products"
   on public.products for select
   using (true);
 
-create policy "Anyone can create products"
+drop policy if exists "Anyone can create products" on public.products;
+drop policy if exists "Anyone can update products" on public.products;
+drop policy if exists "Anyone can delete products" on public.products;
+drop policy if exists "Authenticated owners can create products" on public.products;
+drop policy if exists "Authenticated owners can update products" on public.products;
+drop policy if exists "Authenticated owners can delete products" on public.products;
+
+create policy "Authenticated owners can create products"
   on public.products for insert
-  with check (true);
+  to authenticated
+  with check (owner_id = auth.uid());
 
-create policy "Anyone can update products"
+create policy "Authenticated owners can update products"
   on public.products for update
-  using (true)
-  with check (true);
+  to authenticated
+  using (owner_id = auth.uid())
+  with check (owner_id = auth.uid());
 
-create policy "Anyone can delete products"
+create policy "Authenticated owners can delete products"
   on public.products for delete
-  using (true);
+  to authenticated
+  using (owner_id = auth.uid());
 
 insert into storage.buckets (id, name, public)
 values ('product-images', 'product-images', true)
@@ -40,18 +53,37 @@ create policy "Anyone can view product images"
   on storage.objects for select
   using (bucket_id = 'product-images');
 
-create policy "Owners can upload product images"
+drop policy if exists "Owners can upload product images" on storage.objects;
+drop policy if exists "Owners can update product images" on storage.objects;
+drop policy if exists "Owners can delete product images" on storage.objects;
+drop policy if exists "Account owners can upload product images" on storage.objects;
+drop policy if exists "Account owners can update product images" on storage.objects;
+drop policy if exists "Account owners can delete product images" on storage.objects;
+
+create policy "Account owners can upload product images"
   on storage.objects for insert
   to authenticated
-  with check (bucket_id = 'product-images');
+  with check (
+    bucket_id = 'product-images'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
-create policy "Owners can update product images"
+create policy "Account owners can update product images"
   on storage.objects for update
   to authenticated
-  using (bucket_id = 'product-images')
-  with check (bucket_id = 'product-images');
+  using (
+    bucket_id = 'product-images'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  )
+  with check (
+    bucket_id = 'product-images'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
-create policy "Owners can delete product images"
+create policy "Account owners can delete product images"
   on storage.objects for delete
   to authenticated
-  using (bucket_id = 'product-images');
+  using (
+    bucket_id = 'product-images'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );

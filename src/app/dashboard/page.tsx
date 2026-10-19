@@ -1,8 +1,9 @@
 'use client'
 
-import { ChangeEvent, FormEvent, useEffect, useState } from 'react'
+import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import Image from 'next/image'
 
 type StoreProduct = {
   id: number
@@ -32,20 +33,12 @@ const DashboardPage = () => {
   const [isSaving, setIsSaving] = useState(false)
   const [editingProductId, setEditingProductId] = useState<number | null>(null)
 
-  useEffect(() => {
-    const loadUser = async () => {
-      const { data } = await supabase.auth.getUser()
-      setEmail(data.user?.email ?? 'Store Owner')
-      await loadProducts()
-    }
-
-    loadUser()
-  }, [])
-
-  const loadProducts = async () => {
+ 
+  const loadProducts = useCallback(async (ownerId: string) => {
     const { data, error: productsError } = await supabase
       .from('products')
       .select('id, name, price, category, image_url')
+      .eq('owner_id', ownerId)
       .order('created_at', { ascending: false })
 
     if (productsError) {
@@ -54,7 +47,25 @@ const DashboardPage = () => {
     }
 
     setProducts(data ?? [])
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        router.replace('/login')
+        return
+      }
+
+      setEmail(user.email ?? 'Store Owner')
+      await loadProducts(user.id)
+    }
+
+    loadUser()
+  }, [router, supabase, loadProducts])
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     setImage(event.target.files?.[0] ?? null)
@@ -84,11 +95,16 @@ const DashboardPage = () => {
     setIsSaving(true)
 
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.replace('/login')
+        return
+      }
+
       let imageUrl = ''
 
       if (image) {
-        const slug = `${name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now()}`
-        const filePath = `${crypto.randomUUID()}-${image.name}`
+        const filePath = `${user.id}/${crypto.randomUUID()}-${image.name}`
         const { error: uploadError } = await supabase.storage.from('product-images').upload(filePath, image)
 
         if (uploadError) {
@@ -124,6 +140,7 @@ const DashboardPage = () => {
         const slug = `${name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now()}`
 
         const { error: productError } = await supabase.from('products').insert({
+          owner_id: user.id,
           slug,
           name,
           price: Number(price),
@@ -143,7 +160,7 @@ const DashboardPage = () => {
       }
 
       resetForm()
-      await loadProducts()
+      await loadProducts(user.id)
     } finally {
       setIsSaving(false)
     }
@@ -189,7 +206,7 @@ const DashboardPage = () => {
       <div className="flex flex-col justify-between gap-6 border-b border-stone-200 pb-8 md:flex-row md:items-end">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-rose-500">Owner dashboard</p>
-          <h1 className="mt-3 text-4xl font-semibold text-stone-800">Manage your store</h1>
+          <h1 className="mt-3 text-3xl font-semibold text-stone-800 sm:text-4xl">Manage your store</h1>
           <p className="mt-3 text-sm text-stone-500">Signed in as {email}</p>
         </div>
         <button onClick={handleSignOut} className="w-fit rounded-md border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-100">
@@ -198,7 +215,7 @@ const DashboardPage = () => {
       </div>
 
       <section className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-        <form onSubmit={handleCreateProduct} className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+        <form onSubmit={handleCreateProduct} className="min-w-0 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
           <h2 className="text-xl font-medium text-stone-800">{editingProductId !== null ? 'Edit product' : 'Add a product'}</h2>
           <div className="mt-6 space-y-4">
             <input value={name} onChange={(event) => setName(event.target.value)} required placeholder="Product name" className="w-full rounded-md border border-stone-300 px-3 py-3" />
@@ -211,7 +228,7 @@ const DashboardPage = () => {
               <input value={volume} onChange={(event) => setVolume(event.target.value)} placeholder="Size or fit" className="w-full rounded-md border border-stone-300 px-3 py-3" />
             </div>
             <textarea value={description} onChange={(event) => setDescription(event.target.value)} required placeholder="Description" rows={4} className="w-full rounded-md border border-stone-300 px-3 py-3" />
-            <input onChange={handleImageChange} type="file" accept="image/*" className="w-full rounded-md border border-stone-300 px-3 py-3 text-sm" />
+            <input onChange={handleImageChange} type="file" accept="image/*" className="w-full min-w-0 rounded-md border border-stone-300 px-3 py-3 text-sm" />
             {editingProductId !== null && <p className="text-xs text-stone-500">Leave the image blank to keep the current image.</p>}
           </div>
           {message && <p className="mt-4 text-sm text-green-700">{message}</p>}
@@ -233,13 +250,13 @@ const DashboardPage = () => {
           <div className="mt-6 space-y-4">
             {products.length === 0 && <p className="rounded-2xl border border-dashed border-stone-300 p-8 text-sm text-stone-500">No products added yet.</p>}
             {products.map((product) => (
-              <div key={product.id} className="flex items-center gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
-                <img src={product.image_url} alt={product.name} className="h-20 w-20 rounded-md object-cover" />
+              <div key={product.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-stone-200 bg-white p-3 shadow-sm sm:flex-nowrap sm:gap-4 sm:p-4">
+                <Image src={product.image_url} alt={product.name} width={80} height={80} className="h-16 w-16 shrink-0 rounded-md object-cover sm:h-20 sm:w-20" />
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-medium text-stone-800">{product.name}</h3>
+                  <h3 className="break-words font-medium text-stone-800">{product.name}</h3>
                   <p className="text-sm text-stone-500">{product.category} · ${product.price}</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="ml-auto flex shrink-0 gap-3">
                   <button type="button" onClick={() => handleEditProduct(product)} className="text-sm text-stone-700 hover:underline">Edit</button>
                   <button onClick={() => handleDeleteProduct(product.id)} className="text-sm text-red-600 hover:underline">Delete</button>
                 </div>

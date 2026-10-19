@@ -3,9 +3,11 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation';
 import { useState } from 'react'
 import CartModal from './CartModal';
+import { useCart } from './CartProvider'
 
 const NavIcons = () => {
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const { itemCount } = useCart()
 
   const router = useRouter();
 
@@ -25,17 +27,14 @@ const NavIcons = () => {
         width={22} 
         height={22} className='cursor-pointer'/>
 
-        <div className='relative cursor-pointer'>
-        <Image src="/cart.png" alt=' cart logo' 
-        width={22}
-        height={22}
-        className='cursor-pointer'
-        onClick={()=>setIsCartOpen((prev)=> !prev)}
-        />
-        <div className='absolute -top-4 -right-4 w-6 h-6 bg-[#f35c7a] rounded-full text-white text-sm flex items-center justify-center'>2</div>
+        <div className="relative">
+        <button type="button" aria-label={`Open cart, ${itemCount} items`} aria-expanded={isCartOpen} onClick={() => setIsCartOpen((prev) => !prev)} className="flex h-10 w-10 items-center justify-center">
+          <Image src="/cart.png" alt="" width={22} height={22} />
+          {itemCount > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#f35c7a] px-1 text-xs text-white">{itemCount}</span>}
+        </button>
         </div>
         {isCartOpen && 
-        <CartModal/>
+        <CartModal onClose={() => setIsCartOpen(false)} />
 
           }
     </div>

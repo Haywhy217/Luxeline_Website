@@ -18,19 +18,51 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+# Luxeline
 
-## Learn More
+Luxeline is a Next.js storefront prototype with product pages, editorial collections and journal pages, a contact page, and a Supabase-backed owner dashboard.
 
-To learn more about Next.js, take a look at the following resources:
+## Run Locally
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+From `Luxeline_Website`:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+```bash
+npm ci
+```
 
-## Deploy on Vercel
+Copy `.env.local.example` to `.env.local`, then set the Supabase project URL, publishable/anon key, and store contact email. Apply `supabase/schema.sql` in the Supabase SQL editor. Create the owner account in Supabase Authentication, and disable public sign-ups if this is a single-owner store.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Start the development server:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+```bash
+npm run dev
+```
+
+The site runs at http://localhost:3000. The owner signs in at `/login`; product management is at `/dashboard`.
+
+## Existing Products
+
+New products are assigned to the signed-in owner. If products were created before ownership checks were added, assign them to the owner once in the Supabase SQL editor. Replace the placeholder with the owner's user ID from Supabase Authentication:
+
+```sql
+update public.products
+set owner_id = 'YOUR-AUTH-USER-UUID'
+where owner_id is null;
+```
+
+The schema keeps product reads public for the storefront, but restricts product changes to the authenticated account that owns each row. Product image uploads must be stored under that account's user ID folder.
+
+## Current Scope
+
+The cart persists in the shopper's browser and supports quantity changes and removal. Checkout prepares an order request in the shopper's email app; the store must confirm shipping, availability, and payment. No payment is collected and no order is stored by the site. Search and category filtering are not connected yet. Collections and journal content are static, and the contact page also hands off to the visitor's email app.
+
+These gaps are intentionally deferred. The project is at a pause point for later automation work; there is currently no test script. A useful first automation milestone is a production build check plus smoke coverage for public product browsing and owner-only dashboard access.
+
+## Commands
+
+```bash
+npm run dev
+npm run lint
+npm run build
+npm start
+```
